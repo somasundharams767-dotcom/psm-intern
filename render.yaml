@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: psm-intern-backend
+    runtime: python
+    region: frankfurt
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FRONTEND_URL
+        sync: false
+      - key: BACKEND_CORS_ORIGINS
+        value: "*"
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "1440"
+      - key: INITIAL_ADMIN_EMAIL
+        value: "admin@psmintern.com"
+      - key: INITIAL_ADMIN_PASSWORD
+        value: "AdminPSM@2026!"
+      - key: INITIAL_ADMIN_NAME
+        value: "System Administrator"
