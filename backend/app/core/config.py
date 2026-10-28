@@ -1,5 +1,6 @@
 import os
-from typing import List
+from typing import List, Union
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,18 +20,29 @@ class Settings(BaseSettings):
     # Application public URL for QR codes and verification
     FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
 
-    # CORS origins (supports comma-separated string, JSON array, or wildcard)
-    BACKEND_CORS_ORIGINS: List[str] = (
-        [o.strip() for o in os.getenv("BACKEND_CORS_ORIGINS").split(",") if o.strip()]
-        if os.getenv("BACKEND_CORS_ORIGINS") and os.getenv("BACKEND_CORS_ORIGINS") != "*"
-        else (["*"] if os.getenv("BACKEND_CORS_ORIGINS") == "*" else [
-            "http://localhost:5173",
-            "http://127.0.0.1:5173",
-            "http://localhost:3000",
-            "http://127.0.0.1:3000",
-            os.getenv("FRONTEND_URL", "http://localhost:5173"),
-        ])
-    )
+    # CORS origins (supports string '*', comma-separated list, or JSON list)
+    BACKEND_CORS_ORIGINS: Union[str, List[str]] = [
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
+
+    @field_validator("BACKEND_CORS_ORIGINS", mode="after")
+    @classmethod
+    def assemble_cors_origins(cls, v: Union[str, List[str]]) -> List[str]:
+        if isinstance(v, str):
+            v_stripped = v.strip()
+            if v_stripped == "*":
+                return ["*"]
+            if v_stripped.startswith("[") and v_stripped.endswith("]"):
+                import json
+                try:
+                    return json.loads(v_stripped)
+                except Exception:
+                    pass
+            return [origin.strip() for origin in v_stripped.split(",") if origin.strip()]
+        return v
 
     # Storage paths
     STORAGE_DIR: str = os.getenv("STORAGE_DIR", "./storage")
